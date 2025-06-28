@@ -3,8 +3,10 @@ import { useState } from "react";
 import { Video, Phone, Paperclip } from "lucide-react"; // Importing icons
 
 export default function Chats({ user }) {
-    const chats = ["Hi, how are you?"];
-    const [messages, setMessages] = useState(chats);
+    const [messages, setMessages] = useState([
+        "Hello!",
+        "I'm good, what about you?"
+    ]);
     const [newMessage, setNewMessage] = useState("");
 
     // Placeholder images for users (replace with actual profile pictures)
@@ -22,7 +24,7 @@ export default function Chats({ user }) {
 
     function sendMessage() {
         if (newMessage.trim() !== "") {
-            setMessages((prevMessages) => [...prevMessages, newMessage]);
+            setMessages((prevMessages) => [...prevMessages, newMessage]); // Append at the end
             setNewMessage(""); // Clear input after sending
         }
     }
@@ -43,19 +45,11 @@ export default function Chats({ user }) {
 
             {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto bg-gray-950 space-y-4">
-                <div className="flex justify-start">
-                    <div className="bg-gray-800 p-3 rounded-lg max-w-xs text-white">Hello!</div>
-                </div>
                 {messages.map((msg, index) => (
                     <div key={index} className="flex justify-end">
                         <div className="bg-blue-600 p-3 rounded-lg max-w-xs text-white">{msg}</div>
                     </div>
                 ))}
-                <div className="flex justify-start">
-                    <div className="bg-gray-800 p-3 rounded-lg max-w-xs text-white">
-                        I'm good, what about you?
-                    </div>
-                </div>
             </div>
 
             {/* Message Input Section */}
