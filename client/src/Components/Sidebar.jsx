@@ -1,20 +1,25 @@
-// eslint-disable-next-line react/prop-types
-import { useState } from "react";
+
+import {useEffect, useState} from "react";
 import { Menu, Edit } from "lucide-react"; // Importing icons
+import { useDispatch, useSelector } from "react-redux";
+import {setUsers} from "../Redux/usernameSlice.jsx";
 
 export default function Sidebar({ setUser }) {
+    const dispatch = useDispatch();
+    const users = useSelector((state) => state.users);
     const [profile, setProfile] = useState({
         name: "Ajinkya Pathak ",
         img: "src/assets/profile.jpg",
     });
 
-    const users = [
-        { name: "Sumit Pathak", img: "src/assets/Logo-2.png" },
-        { name: "Aditya Pathak", img: "src/assets/Logo-1.png" },
-        { name: "Avishkar Joshi", img: "src/assets/Logo-3.png" },
-        { name: "Saket Tepale", img: "src/assets/Logo-2.png" },
-        { name: "Abhay Wangwad", img: "src/assets/Logo-3.png" },
-    ];
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const res = await fetch("http://localhost:3001/api/users/me");
+            dispatch(setUsers(res.data));
+        }
+        fetchProfile();
+    })
+
 
     return (
         <div className="w-1/4 bg-gray-900 p-4 flex flex-col">
@@ -43,7 +48,7 @@ export default function Sidebar({ setUser }) {
                     <div
                         key={user.name}
                         className="p-2 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-700 flex items-center space-x-3"
-                        onClick={() => setUser(user.name)}
+                        onClick={() => setUser(user.id)}
                     >
                         <img
                             src={user.img}

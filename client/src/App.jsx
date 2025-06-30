@@ -4,17 +4,17 @@ import { useState } from "react";
 import WelcomePage from "./Components/WelcomePage.jsx";
 
 export default function App() {
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedUserid, setSelectedUserid] = useState(null);
 
     return (
         <>
             <div className="h-screen w-screen bg-black text-white flex">
                 {/* Sidebar */}
-                <Sidebar setUser={setSelectedUser}/>
+                <Sidebar setUser={setSelectedUserid}/>
 
                 {/* Chat Section */}
                 <div className="flex flex-col flex-1">
-                    {selectedUser ? <Chats user={selectedUser}/> : <WelcomePage/>}
+                    {selectedUserid ? <Chats user={selectedUserid}/> : <WelcomePage/>}
                 </div>
             </div>
         </>

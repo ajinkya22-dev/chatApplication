@@ -1,31 +1,43 @@
-// eslint-disable-next-line react/prop-types
-import { useState } from "react";
-import { Video, Phone, Paperclip } from "lucide-react"; // Importing icons
+import { useEffect, useState } from "react";
+import { Video, Phone, Paperclip } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
+import { setChats, addMessage } from "../Redux/chatslice.jsx";
+import { getUserById } from "../Redux/usernameSlice.jsx";
 
-export default function Chats({ user }) {
-    const [messages, setMessages] = useState([
-        "Hello!",
-        "I'm good, what about you?"
-    ]);
-    const [newMessage, setNewMessage] = useState("");
+export default function Chats({ userid }) {
+    const [input, setInput] = useState("");
+    const dispatch = useDispatch();
 
-    // Placeholder images for users (replace with actual profile pictures)
-    const userImages = {
-        "Sumit Pathak": "src/assets/Logo-2.png",
-        "Aditya Pathak": "src/assets/Logo-1.png",
-        "Avishkar Joshi": "src/assets/Logo-3.png",
-        "Saket Tepale": "src/assets/Logo-2.png",
-        "Abhay Wangwad": "src/assets/Logo-3.png",
-    };
+    const UserChats = useSelector((state) => state.chats.userChats);
+    const userData = useSelector((state) => getUserById(state, userid));
 
-    function handleInputChange(event) {
-        setNewMessage(event.target.value);
+
+    if (!userData) {
+        return <div className="text-white p-4">Loading user...</div>;
     }
 
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+        const fetchChats = async () => {
+            try {
+                const res = await axios.get(`/api//${userid}`);
+                if (res.data) {
+                    dispatch(setChats(res.data));
+                }
+            } catch (err) {
+                console.error("Error fetching chats:", err);
+            }
+        };
+        fetchChats();
+    }, [dispatch, userid]);
+
+    // 💬 Send message
     function sendMessage() {
-        if (newMessage.trim() !== "") {
-            setMessages((prevMessages) => [...prevMessages, newMessage]); // Append at the end
-            setNewMessage(""); // Clear input after sending
+        if (input.trim() !== "") {
+            dispatch(addMessage(input));
+            setInput("");
         }
     }
 
@@ -34,8 +46,14 @@ export default function Chats({ user }) {
             {/* Header Section */}
             <div className="p-4 bg-gray-900 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <img src={userImages[user]} alt={user} className="w-10 h-10 rounded-full" />
-                    <h2 className="text-lg font-semibold text-white">{user}</h2>
+                    <img
+                        src={userData.image || "https://via.placeholder.com/40"}
+                        alt={userData.name}
+                        className="w-10 h-10 rounded-full"
+                    />
+                    <h2 className="text-lg font-semibold text-white">
+                        {userData.name}
+                    </h2>
                 </div>
                 <div className="flex gap-4">
                     <Phone className="text-white cursor-pointer hover:text-blue-500" size={24} />
@@ -45,9 +63,11 @@ export default function Chats({ user }) {
 
             {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto bg-gray-950 space-y-4">
-                {messages.map((msg, index) => (
+                {UserChats.map((msg, index) => (
                     <div key={index} className="flex justify-end">
-                        <div className="bg-blue-600 p-3 rounded-lg max-w-xs text-white">{msg}</div>
+                        <div className="bg-blue-600 p-3 rounded-lg max-w-xs text-white">
+                            {msg}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -59,10 +79,10 @@ export default function Chats({ user }) {
                 </button>
                 <input
                     type="text"
-                    value={newMessage}
+                    value={input}
                     placeholder="Type a message..."
                     className="flex-1 p-2 rounded-lg bg-gray-800 text-white outline-none"
-                    onChange={handleInputChange}
+                    onChange={(e) => setInput(e.target.value)}
                 />
                 <button
                     className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-700 text-white"
