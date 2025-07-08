@@ -3,76 +3,113 @@ import { Video, Phone, Paperclip } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
 import { setChats, addMessage } from "../Redux/chatslice.jsx";
+import { io } from "socket.io-client";
 import { getUserById } from "../Redux/usernameSlice.jsx";
+import Profile from "/profile.png";
+import {useMemo} from "react";
 
-export default function Chats({ userid }) {
+// eslint-disable-next-line react/prop-types
+export default function Chats({ userid, currentUserId }) {
     const [input, setInput] = useState("");
     const dispatch = useDispatch();
-
-    const UserChats = useSelector((state) => state.chats.userChats);
+    const [socket, setSocket] = useState(null);
+    const userChats = useSelector((state) => state.chats.userChats);
+    const UserChats = useMemo(() => userChats[userid] || [], [userChats, userid]);
     const userData = useSelector((state) => getUserById(state, userid));
 
-
-    if (!userData) {
-        return <div className="text-white p-4">Loading user...</div>;
-    }
-
-
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     useEffect(() => {
-        const fetchChats = async () => {
+        const fetchChatHistory = async () => {
             try {
-                const res = await axios.get(`/api//${userid}`);
-                if (res.data) {
-                    dispatch(setChats(res.data));
-                }
+                const res = await axios.get(
+                    `http://localhost:5000/api/chats/${userid}?senderId=${currentUserId}`
+                );
+                dispatch(setChats({ userId: userid, messages: res.data }));
             } catch (err) {
-                console.error("Error fetching chats:", err);
+                console.error("Error loading chat history", err);
             }
         };
-        fetchChats();
-    }, [dispatch, userid]);
 
-    // 💬 Send message
-    function sendMessage() {
+        fetchChatHistory();
+    }, [dispatch, userid, currentUserId]);
+
+
+    useEffect(() => {
+        const newSocket = io("http://localhost:5000", {
+            transports: ["websocket"], // more stable
+        });
+        setSocket(newSocket);
+
+        newSocket.on("receiveMessage", (message) => {
+            const isRelevant =
+                (message.from === userid && message.to === currentUserId) ||
+                (message.from === currentUserId && message.to === userid);
+
+            if (isRelevant) {
+                dispatch(addMessage({ userId: userid, message }));
+            }
+        });
+
+        return () => newSocket.disconnect();
+    }, [dispatch, userid, currentUserId]);
+
+    const sendMessage = async () => {
         if (input.trim() !== "") {
-            dispatch(addMessage(input));
-            setInput("");
+            const message = {
+                from: currentUserId,
+                to: userid,
+                content: input,
+            };
+
+            try {
+                const res = await axios.post("/api/chats/send", message);
+                dispatch(addMessage({ userId: userid, message: res.data }));
+                socket.emit("sendMessage", res.data);
+                setInput("");
+            } catch (err) {
+                console.error("Failed to send message", err);
+            }
         }
-    }
+    };
+
+    if (!userData) return <div className="text-white p-4">Loading user...</div>;
 
     return (
         <>
-            {/* Header Section */}
+            {/* Chat Header */}
             <div className="p-4 bg-gray-900 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <img
-                        src={userData.image || "https://via.placeholder.com/40"}
+                        src={userData.profileImage || Profile}
                         alt={userData.name}
                         className="w-10 h-10 rounded-full"
                     />
-                    <h2 className="text-lg font-semibold text-white">
-                        {userData.name}
-                    </h2>
+                    <h2 className="text-lg font-semibold text-white">{userData.name}</h2>
                 </div>
                 <div className="flex gap-4">
-                    <Phone className="text-white cursor-pointer hover:text-blue-500" size={24} />
-                    <Video className="text-white cursor-pointer hover:text-blue-500" size={24} />
+                    <Phone className="text-white hover:text-blue-500" size={24} />
+                    <Video className="text-white hover:text-blue-500" size={24} />
                 </div>
             </div>
 
             {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto bg-gray-950 space-y-4">
                 {UserChats.map((msg, index) => (
-                    <div key={index} className="flex justify-end">
-                        <div className="bg-blue-600 p-3 rounded-lg max-w-xs text-white">
-                            {msg}
+                    <div
+                        key={index}
+                        className={`flex ${msg.from === currentUserId ? "justify-end" : "justify-start"}`}
+                    >
+                        <div
+                            className={`p-3 rounded-lg max-w-xs text-white ${
+                                msg.from === currentUserId ? "bg-blue-600" : "bg-gray-700"
+                            }`}
+                        >
+                            {msg.content}
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Message Input Section */}
+            {/* Chat Input */}
             <div className="p-4 bg-gray-900 flex items-center gap-2">
                 <button className="text-white hover:text-blue-500">
                     <Paperclip size={24} />
